@@ -1,16 +1,20 @@
 import React, { useContext, useState, useEffect } from "react";
 import { GameContext } from "./GameProvider.js";
-import { useHistory } from "react-router-dom";
+import { useHistory, useParams } from "react-router-dom";
 
 export const GameForm = () => {
   const history = useHistory();
-  const { createGame, getGameTypes, gameTypes } = useContext(GameContext);
 
-  /*
-        Since the input fields are bound to the values of
-        the properties of this state variable, you need to
-        provide some default values.
-    */
+  const {
+    createGame,
+    getGameTypes,
+    gameTypes,
+    getGameById,
+    updateGame,
+  } = useContext(GameContext);
+
+  const { gameId } = useParams();
+
   const [currentGame, setCurrentGame] = useState({
     numberOfPlayers: 0,
     name: "",
@@ -19,13 +23,23 @@ export const GameForm = () => {
     gameTypeId: 0,
   });
 
-  /*
-        Get game types on initialization so that the <select>
-        element presents game type choices to the user.
-    */
   useEffect(() => {
     getGameTypes();
   }, []);
+
+  useEffect(() => {
+    if (gameId) {
+      getGameById(gameId).then((game) =>
+        setCurrentGame({
+          numberOfPlayers: game.number_of_players,
+          description: game.description,
+          name: game.name,
+          maker: game.maker,
+          gameTypeId: game.game_type.id,
+        })
+      );
+    }
+  }, [gameId]);
 
   /*
         REFACTOR CHALLENGE START
@@ -37,87 +51,163 @@ export const GameForm = () => {
 
         One hint: [event.target.name]
     */
-  const changeGameNameState = (event) => {
+
+  //   const changeGameNameState = (event) => {
+  //     const newGameState = { ...currentGame };
+  //     newGameState.name = event.target.value;
+  //     setCurrentGame(newGameState);
+  //   };
+
+  //   const changeGameMakerState = (event) => {
+  //     const newGameState = { ...currentGame };
+  //     newGameState.maker = event.target.value;
+  //     setCurrentGame(newGameState);
+  //   };
+
+  //   const changeGamePlayersState = (event) => {
+  //     const newGameState = { ...currentGame };
+  //     newGameState.numberOfPlayers = event.target.value;
+  //     setCurrentGame(newGameState);
+  //   };
+
+  //   const changeGameDescriptionState = (event) => {
+  //     const newGameState = { ...currentGame };
+  //     newGameState.description = event.target.value;
+  //     setCurrentGame(newGameState);
+  //   };
+
+  const changeGameState = (event) => {
     const newGameState = { ...currentGame };
-    newGameState.name = event.target.value;
+    newGameState[event.target.name] = event.target.value;
     setCurrentGame(newGameState);
   };
 
-  const changeGameMakerState = (event) => {
-    const newGameState = { ...currentGame };
-    newGameState.maker = event.target.value;
-    setCurrentGame(newGameState);
-  };
-
-  const changeGamePlayersState = (event) => {
-    const newGameState = { ...currentGame };
-    newGameState.numberOfPlayers = event.target.value;
-    setCurrentGame(newGameState);
-  };
-
-  const changeGameDescriptionState = (event) => {
-    const newGameState = { ...currentGame };
-    newGameState.description = event.target.value;
-    setCurrentGame(newGameState);
-  };
-
-  const changeGameTypeState = (event) => {
-    const newGameState = { ...currentGame };
-    newGameState.gameTypeId = event.target.value;
-    setCurrentGame(newGameState);
-  };
-  /* REFACTOR CHALLENGE END */
+  //   const changeGameTypeState = (event) => {
+  //     const newGameState = { ...currentGame };
+  //     newGameState.gameTypeId = event.target.value;
+  //     setCurrentGame(newGameState);
+  //   };
 
   return (
     <form className="gameForm">
       <h2 className="gameForm__title">Register New Game</h2>
       <fieldset>
         <div className="form-group">
-          <label htmlFor="title">Title: </label>
+          <label htmlFor="name">Game Name: </label>
           <input
             type="text"
-            name="title"
+            name="name"
             required
             autoFocus
             className="form-control"
-            value={currentGame.title}
-            onChange={changeGameNameState}
+            value={currentGame.name}
+            onChange={changeGameState}
           />
         </div>
       </fieldset>
+      <fieldset>
+        <div className="form-group">
+          <label htmlFor="maker">Game Maker: </label>
+          <input
+            type="text"
+            name="maker"
+            required
+            autoFocus
+            className="form-control"
+            value={currentGame.maker}
+            onChange={changeGameState}
+          />
+        </div>
+      </fieldset>
+      <fieldset>
+        <div className="form-group">
+          <label htmlFor="numberOfPlayers">Number of players: </label>
+          <input
+            type="text"
+            name="numberOfPlayers"
+            required
+            autoFocus
+            className="form-control"
+            value={currentGame.numberOfPlayers}
+            onChange={changeGameState}
+          />
+        </div>
+      </fieldset>
+      <fieldset>
+        <div className="form-group">
+          <label htmlFor="description">Game Description: </label>
+          <input
+            type="text"
+            name="description"
+            required
+            autoFocus
+            className="form-control"
+            value={currentGame.description}
+            onChange={changeGameState}
+          />
+        </div>
+      </fieldset>
+      <fieldset>
+        <div className="form-group">
+          <label htmlFor="gameTypeId">Game Type:</label>
+          <select
+            value={currentGame.gameTypeId}
+            name="gameTypeId"
+            id="gameTypeId"
+            className="form-control"
+            onChange={changeGameState}
+          >
+            <option value="0">Select</option>
+            {gameTypes.map((gametype) => (
+              <option key={gametype.id} value={gametype.id}>
+                {gametype.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </fieldset>
+      {gameId ? (
+        <button
+          type="submit"
+          onClick={(evt) => {
+            // Prevent form from being submitted
+            evt.preventDefault();
+            updateGame({
+              id: gameId,
+              name: currentGame.name,
+              gameTypeId: parseInt(currentGame.gameTypeId),
+              description: currentGame.description,
+              numberOfPlayers: parseInt(currentGame.numberOfPlayers),
+              maker: currentGame.maker,
+            }).then(() => history.push("/"));
+          }}
+          className="btn btn-primary"
+        >
+          Edit
+        </button>
+      ) : (
+        <button
+          type="submit"
+          onClick={(evt) => {
+            // Prevent form from being submitted
+            evt.preventDefault();
 
-      {/* You create the rest of the input fields for each game property */}
-
-      <button
-        className="btn btn-2 btn-sep icon-create"
-        onClick={() => {
-          history.push({ pathname: "/games/new" });
-        }}
-      >
-        Register New Game
-      </button>
-
-      <button
-        type="submit"
-        onClick={(evt) => {
-          // Prevent form from being submitted
-          evt.preventDefault();
-
-          const game = {
-            maker: currentGame.maker,
-            name: currentGame.name,
-            description: currentGame.description,
-            numberOfPlayers: parseInt(currentGame.numberOfPlayers),
-            gameTypeId: parseInt(currentGame.gameTypeId),
-          };
-
-          // Send POST request to your API
-          createGame(game).then(() => history.push("/games"));
-        }}
-        className="btn btn-primary"
-      >
-        Create
-      </button>
+            const game = {
+              name: currentGame.name,
+              gameTypeId: parseInt(currentGame.gameTypeId),
+              description: currentGame.description,
+              numberOfPlayers: parseInt(currentGame.numberOfPlayers),
+              maker: currentGame.maker,
+              // gamer: parseInt(localStorage.getItem("lu_token"))
+            };
+            // Send POST request to your API
+            createGame(game).then(() => history.push("/"));
+          }}
+          className="btn btn-primary"
+        >
+          Create
+        </button>
+      )}
     </form>
   );
 };
